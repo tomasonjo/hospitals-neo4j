@@ -4,7 +4,8 @@ sandbox https://10-0-1-12-32840.neo4jsandbox.com/browser/
 
 username : Hospital , password: hospital
 
-Guide:
+## Guide:
+
 Hospital.html
 
 [NOTE]
@@ -21,7 +22,7 @@ Get tutorial in Neo4j Browser
 
 `:play http://localhost:8001/hospital.html`
 
-Blog posts:
+## Blog posts:
 
 part 1: https://tbgraph.wordpress.com/2017/04/01/neo4j-location-trees
 
