@@ -1,0 +1,256 @@
+<style type="text/css" media="screen">
+/*
+.nodes-image {
+	margin:-100;
+}
+*/	
+@import url("//maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css");
+
+.imageblock .content img, .image img {max-width: 900px;max-height: 300px;}
+.deck h3, .deck h4 {display: block !important;margin-bottom:8px;margin-top:5px;}
+.listingblock {margin:8px;}
+.pull-bottom {position:relative;bottom:1em;}
+.admonitionblock td.icon [class^="fa icon-"]{font-size:2.5em;text-shadow:1px 1px 2px rgba(0,0,0,.5);cursor:default}
+.admonitionblock td.icon .icon-note:before{content:"\f05a";color:#19407c}
+.admonitionblock td.icon .icon-tip:before{content:"\f0eb";text-shadow:1px 1px 2px rgba(155,155,0,.8);color:#111}
+.admonitionblock td.icon .icon-warning:before{content:"\f071";color:#bf6900}
+.admonitionblock td.icon .icon-caution:before{content:"\f06d";color:#bf3400}
+.admonitionblock td.icon .icon-important:before{content:"\f06a";color:#bf0000}
+.admonitionblock.note.speaker { display:none; }
+</style>
+<style type="text/css" media="screen">
+/* #editor.maximize-editor .CodeMirror-code { font-size:24px; line-height:26px; } */
+</style>
+<article class="guide" ng-controller="AdLibDataController">
+  <carousel class="deck container-fluid">
+    <!--slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>Hospitals guide</h3>
+        <p class="lead">Information</p>
+			<!dl>
+				
+				
+				
+				
+				
+			</dl>
+		</div>
+      <div class="col-sm-9">
+        <figure>
+          <img style="width:300px" src=""/>
+        </figure>
+      </div>
+    </slide-->
+    
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Hospitals guide</h3>
+    <br/>
+    <div>
+      <div class="imageblock" style="float: right;">
+<div class="content">
+<img src="https://tbgraph.files.wordpress.com/2017/03/hospitalmeta.jpg?w=672" alt="hospitalmeta" width="400px">
+</div>
+</div>
+
+
+
+   <h4>Introduction</h4>
+   <div class="paragraph">
+<p>We want to demonstrate how to work with hiearchical location trees. You will need to follow these basic rules, when importing your location graph, so that your queries will be optimized and return correct answers.</p>
+</div>
+
+
+
+   <h4>Rules of location tree:</h4>
+   <div class="ulist">
+<ul>
+<li>
+<p><em>All relationships are directed from children to parents, going up the hiearchy.</em></p>
+</li>
+<li>
+<p><em>We have a single type for all relationships. (PARENT;FROM;IS_IN)</em></p>
+</li>
+<li>
+<p><em>Every node has a single outgoing relationship to it’s parent.</em></p>
+</li>
+<li>
+<p><em>Every node can have one or multiple incoming relationships from its children.</em></p>
+</li>
+</ul>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Setup</h3>
+    <br/>
+    <div>
+      
+
+
+   <h4>Import Hospitals</h4>
+   <div class="paragraph">
+<p>You can notice, that we do not take the standard approach, where we merge each node
+separately, but we merge them in pattern with their parent in hiearchical tree, because some counties/cities/addresses share the same name.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->LOAD CSV WITH HEADERS FROM "https://raw.githubusercontent.com/tomasonjo/hospitals-neo4j/master/Hospital%20General%20Information.csv" as row
+// state name is unique
+MERGE (state:State{name:row.State})
+// merge by pattern with their parents
+MERGE (state)&lt;-[:IS_IN]-(county:County{name:row.`County Name`})
+MERGE (county)&lt;-[:IS_IN]-(city:City{name:row.City})
+MERGE (city)&lt;-[:IS_IN]-(zip:ZipCode{name:row.`ZIP Code`})
+MERGE (zip)&lt;-[:IS_IN]-(address:Address{name:row.Address})
+// for entities it is best to have an id system
+MERGE (h:Hospital{id:row.`Provider ID`})
+ON CREATE SET h.phone=row.`Phone Number`,
+              h.emergency_services = row.`Emergency Services`,
+              h.name= row.`Hospital Name`,
+              h.mortality = row.`Mortality national comparison`,
+              h.safety = row.`Safety of care national comparison`,
+              h.timeliness = row.`Timeliness of care national comparison`,
+              h.experience = row.`Patient experience national comparison`,
+              h.effectiveness = row.`Effectiveness of care national comparison`
+MERGE (h)-[:IS_IN]-&gt;(address)
+//Some metadata about hospitals
+MERGE (type:HospitalType{name:row.`Hospital Type`})
+MERGE (h)-[:HAS_TYPE]-&gt;(type)
+MERGE (ownership:Ownership{name: row.`Hospital Ownership`})
+MERGE (h)-[:HAS_OWNERSHIP]-&gt;(ownership)
+MERGE (rating:Rating{name:row.`Hospital overall rating`})
+MERGE (h)-[:HAS_RATING]-&gt;(rating)<!--/code--></pre>
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Geospatial information</h3>
+    <br/>
+    <div>
+      
+
+
+   <h4>Gps Import</h4>
+   <div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->LOAD CSV WITH HEADERS FROM "https://raw.githubusercontent.com/tomasonjo/hospitals-neo4j/master/gpsinfo.csv" as row
+MATCH (hospital:Hospital {id:row.id})
+SET hospital.latitude = row.latitude, hospital.longitude = row.longitude<!--/code--></pre>
+</div>
+</div>
+
+
+
+   <h4>Apoc spatial</h4>
+   <div class="paragraph">
+<p>Example how to get GPS info with apoc.spatial. I would suggest you use the above version with csv file and skip this one, because it may take some time, since we have 4807 hospitals.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH (h:Hospital)-[:IS_IN*..3]-&gt;(location)
+with h,substring(reduce(s="", name in collect(location.name) | s + "," + name),1) as geoinfo
+CALL apoc.spatial.geocodeOnce(geoinfo) YIELD location
+set h += location<!--/code--></pre>
+</div>
+</div>
+
+
+
+   <h4>Spatial query example</h4>
+   <div class="paragraph">
+<p>If you get lost on Liberty Island and want to find the nearest 10 hospitals. Distance is in meters.Does not work in Neo4j Sandbox.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->with "1 Liberty Island, New York" as myLocation
+call apoc.spatial.geocodeOnce(myLocation) yield location
+WITH point({longitude: location.longitude, latitude: location.latitude}) as myPosition,100 as distanceInKm
+MATCH (h:Hospital)--&gt;(rating:Rating) where exists(h.latitude) and
+distance(myPosition, point({longitude:h.longitude,latitude:h.latitude})) &lt; (distanceInKm * 100)
+RETURN h,rating.name as rating,distance(myPosition, point({longitude:h.longitude,latitude:h.latitude})) as distance order by distance limit 10<!--/code--></pre>
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Queries</h3>
+    <br/>
+    <div>
+      <div class="paragraph">
+<p>Lets run a few queries and learn about our data.</p>
+</div>
+
+
+
+   <h4>Average rating by ownership</h4>
+   <div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH (r)&lt;-[:HAS_RATING]-(h:Hospital)-[:HAS_OWNERSHIP]-&gt;(o)
+return o.name as ownership,avg(toINT(r.name)) as averageRating order by averageRating desc limit 15<!--/code--></pre>
+</div>
+</div>
+
+
+
+   <h4>Number of hospitals per city</h4>
+   <div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH (h:Hospital)-[:IS_IN*3..3]-&gt;(city)
+return city.name as city,count(h) as NumberOfHospitals order by NumberOfHospitals desc limit 15<!--/code--></pre>
+</div>
+</div>
+
+
+
+   <h4>Top 10 states by rating</h4>
+   <div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH (r)&lt;-[:HAS_RATING]-(h:Hospital)-[:IS_IN*5..5]-&gt;(state)
+where not r.name="Not Available"
+return state.name as state,avg(toINT(r.name)) as averageRating,count(h) as numberOfHospitals order by averageRating desc limit 15<!--/code--></pre>
+</div>
+</div>
+
+
+
+   <h4>Which states has the most above the average hospitals in effectivness</h4>
+   <div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH (h:Hospital)-[:IS_IN*5..5]-&gt;(state) where h.effectiveness = "Above the National average"
+return state.name as state,h.effectiveness,count(h) as numberOfHospitals order by numberOfHospitals desc limit 15<!--/code--></pre>
+</div>
+</div>
+
+
+
+   <h4>Which states has the most below the average hospitals in mortality</h4>
+   <div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH (h:Hospital)-[:IS_IN*5..5]-&gt;(state) where h.mortality = "Below the National average"
+return state.name as state,h.mortality,count(h) as numberOfHospitals order by numberOfHospitals desc limit 15<!--/code--></pre>
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+  </carousel>
+</article>
