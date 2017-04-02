@@ -1,9 +1,9 @@
 # hospitals-neo4j
-
+https://10-0-1-12-32840.neo4jsandbox.com/browser/
 queries:
 ********************
 import
-
+<code>
 LOAD CSV WITH HEADERS FROM "https://raw.githubusercontent.com/tomasonjo/hospitals-neo4j/master/Hospital%20General%20Information.csv" as row
 // state name is unique
 MERGE (state:State{name:row.State})
@@ -23,10 +23,12 @@ MERGE (ownership:Ownership{name: row.`Hospital Ownership`})
 MERGE (h)-[:HAS_OWNERSHIP]->(ownership)
 MERGE (rating:Rating{name:row.`Hospital overall rating`})
 MERGE (h)-[:HAS_RATING]->(rating)
-
+</code>
 
 ****
 get latitude and longitude
+<code>
 LOAD CSV WITH HEADERS FROM "https://raw.githubusercontent.com/tomasonjo/hospitals-neo4j/master/gpsinfo.csv" as row
 MATCH (h:Hospital{id:row.id})
 SET h.longitude = row.longitude,h.latitude=row.latitude
+</code>
