@@ -89,13 +89,62 @@
 
 <slide class="row-fluid">
   <div class="col-sm-12">
-    <h3>Setup</h3>
+    <h3>Schema</h3>
     <br/>
     <div>
       
 
 
-   <h4>Import Hospitals</h4>
+   <h4>Add constraints</h4>
+   <div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->CREATE CONSTRAINT ON (h:Hospital) ASSERT h.id IS UNIQUE<!--/code--></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->CREATE CONSTRAINT ON (s:State) ASSERT s.name IS UNIQUE<!--/code--></pre>
+</div>
+</div>
+
+
+
+   <h4>Add indexes</h4>
+   <div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->CREATE INDEX ON :County(name)<!--/code--></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->CREATE INDEX ON :City(name)<!--/code--></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->CREATE INDEX ON :ZipCode(name)<!--/code--></pre>
+</div>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->CREATE INDEX ON :Address(name)<!--/code--></pre>
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Import</h3>
+    <br/>
+    <div>
+      
+
+
+   <h4>Hospitals CSV</h4>
    <div class="paragraph">
 <p>You can notice, that we do not take the standard approach, where we merge each node
 separately, but we merge them in pattern with their parent in hiearchical tree, because some counties/cities/addresses share the same name.</p>
@@ -182,6 +231,44 @@ WITH point({longitude: location.longitude, latitude: location.latitude}) as myPo
 MATCH (h:Hospital)--&gt;(rating:Rating) where exists(h.latitude) and
 distance(myPosition, point({longitude:h.longitude,latitude:h.latitude})) &lt; (distanceInKm * 100)
 RETURN h,rating.name as rating,distance(myPosition, point({longitude:h.longitude,latitude:h.latitude})) as distance order by distance limit 10<!--/code--></pre>
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Data Validation</h3>
+    <br/>
+    <div>
+      
+
+
+   <h4>Check if any :Address have more than one relationship going upwards the hiearchy</h4>
+   <div class="paragraph">
+<p>Every node has a single outgoing relationship to it’s parent rule</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->match (a:Address)
+with a where size((a)-[:IS_IN]-&gt;()) &gt; 1
+return a<!--/code--></pre>
+</div>
+</div>
+
+
+
+   <h4>We can also check the length of all the paths in location tree.</h4>
+   <div class="paragraph">
+<p>Because of our rules we placed every hospital must have exactly one location path, because every hospital have exactly one address</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH path=(h:Hospital)-[:IS_IN*..10]-&gt;(location) where not (location)-[:IS_IN]-&gt;()
+return distinct(length(path)) as length,count(*) as numberOfPaths,count(distinct(h)) as numberOfHospitals<!--/code--></pre>
 </div>
 </div>
 	</div>
