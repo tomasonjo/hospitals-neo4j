@@ -13,7 +13,7 @@ Hospital.html
 Need to whitelist source in neo4j.conf
 
 
-`browser.remote_content_hostname_whitelist=https://localhost:8001/`
+`browser.remote_content_hostname_whitelist=http://localhost:8001/`
 
 Start server:
 `python http-server`
