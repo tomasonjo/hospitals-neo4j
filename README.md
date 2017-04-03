@@ -10,6 +10,9 @@ username : Hospital , password: hospital
 
 Hospital.html
 
+:play http://guides.neo4j.com/contrib/hospital.html
+
+### Host locally:
 [NOTE]
 
 Need to whitelist source in neo4j.conf
