@@ -10,7 +10,7 @@ username : Hospital , password: hospital
 
 Hospital.html
 
-:play http://guides.neo4j.com/contrib/hospital.html
+<code>:play http://guides.neo4j.com/contrib/hospital.html</code>
 
 ### Host locally:
 [NOTE]
