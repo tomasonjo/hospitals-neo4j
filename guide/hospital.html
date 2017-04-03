@@ -59,7 +59,9 @@
 
    <h4>Introduction</h4>
    <div class="paragraph">
-<p>We want to demonstrate how to work with hiearchical location trees. You will need to follow these basic rules, when importing your location graph, so that your queries will be optimized and return correct answers.</p>
+<p>I want to demonstrate, how you should approach hiearchical location trees in Neo4j. My name is Tomaz Bratanic. From what I have
+learned during importing/querying with them, I came up with a few ground rules one should
+follow to in order to get the correct query results.</p>
 </div>
 
 
@@ -81,54 +83,22 @@
 </li>
 </ul>
 </div>
-	</div>
-  </div>
-</slide>
 
 
 
-<slide class="row-fluid">
-  <div class="col-sm-12">
-    <h3>Schema</h3>
-    <br/>
-    <div>
-      
-
-
-   <h4>Add constraints</h4>
-   <div class="listingblock">
-<div class="content">
-<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->CREATE CONSTRAINT ON (h:Hospital) ASSERT h.id IS UNIQUE<!--/code--></pre>
-</div>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->CREATE CONSTRAINT ON (s:State) ASSERT s.name IS UNIQUE<!--/code--></pre>
-</div>
-</div>
-
-
-
-   <h4>Add indexes</h4>
-   <div class="listingblock">
-<div class="content">
-<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->CREATE INDEX ON :County(name)<!--/code--></pre>
-</div>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->CREATE INDEX ON :City(name)<!--/code--></pre>
-</div>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->CREATE INDEX ON :ZipCode(name)<!--/code--></pre>
-</div>
-</div>
-<div class="listingblock">
-<div class="content">
-<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->CREATE INDEX ON :Address(name)<!--/code--></pre>
-</div>
+   <h4>Contact:</h4>
+   <div class="ulist">
+<ul>
+<li>
+<p><em>twitter: @tb_tomaz</em></p>
+</li>
+<li>
+<p><em>github: <a href="https://github.com/tomasonjo" class="bare">https://github.com/tomasonjo</a></em></p>
+</li>
+<li>
+<p><em>blog: <a href="https://tbgraph.wordpress.com/category/hospital" class="bare">https://tbgraph.wordpress.com/category/hospital</a></em></p>
+</li>
+</ul>
 </div>
 	</div>
   </div>
@@ -144,7 +114,21 @@
       
 
 
-   <h4>Hospitals CSV</h4>
+   <h4>Add constraints</h4>
+   <div class="paragraph">
+<p>First arrays are indexes, second are unique constraints. Use them as it will optimize your queries.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->CALL apoc.schema.assert(
+ {County:['name'],City:['name'],ZipCode:['name'],Address:['name']},
+ {Hospital:['id'],State:['name']});<!--/code--></pre>
+</div>
+</div>
+
+
+
+   <h4>Load CSV</h4>
    <div class="paragraph">
 <p>You can notice, that we do not take the standard approach, where we merge each node
 separately, but we merge them in pattern with their parent in hiearchical tree, because some counties/cities/addresses share the same name.</p>
@@ -228,7 +212,8 @@ set h += location<!--/code--></pre>
 <pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->with "1 Liberty Island, New York" as myLocation
 call apoc.spatial.geocodeOnce(myLocation) yield location
 WITH point({longitude: location.longitude, latitude: location.latitude}) as myPosition,100 as distanceInKm
-MATCH (h:Hospital)--&gt;(rating:Rating) where exists(h.latitude) and
+MATCH (h:Hospital)--&gt;(rating:Rating)
+WHERE exists(h.latitude) and
 distance(myPosition, point({longitude:h.longitude,latitude:h.latitude})) &lt; (distanceInKm * 100)
 RETURN h,rating.name as rating,distance(myPosition, point({longitude:h.longitude,latitude:h.latitude})) as distance order by distance limit 10<!--/code--></pre>
 </div>
@@ -269,6 +254,19 @@ return a<!--/code--></pre>
 <div class="content">
 <pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH path=(h:Hospital)-[:IS_IN*..10]-&gt;(location) where not (location)-[:IS_IN]-&gt;()
 return distinct(length(path)) as length,count(*) as numberOfPaths,count(distinct(h)) as numberOfHospitals<!--/code--></pre>
+</div>
+</div>
+
+
+
+   <h4>Check how many labels each node has</h4>
+   <div class="paragraph">
+<p>Useful when learning. You do not wish to have nodes without labels.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->match (n)
+return size(labels(n)) as size,count(*)<!--/code--></pre>
 </div>
 </div>
 	</div>
