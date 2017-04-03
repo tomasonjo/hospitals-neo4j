@@ -58,33 +58,37 @@
     /**
      * Constants
      */
-    var boltURI = 'bolt://192.168.17.83';
+    var boltURI = 'bolt://192.168.11.100';
     var MB_API_TOKEN = "pk.eyJ1IjoibHlvbndqIiwiYSI6IndwUXlLUjQifQ.DIiytYUASOcXjKdpXW8S-Q";
 
     var driver = neo4j.v1.driver(boltURI, neo4j.v1.auth.basic("neo4j", "burek123"));
     var session = driver.session();
 
     var addressQuery =
-        "MATCH (company:Company)<--(o:Invoice)-[q:HAS_PRODUCT]->(p),(o)-[:PART_OF_LOCATION]->(city:City) " + 
-        "WHERE exists(o.longitude) and not p.name='Joan DHL Express Worldwide shipping service'" + // AND " +
-        //" distance(pos, point({longitude : o.longitude,latitude : o.latitude})) < ({distanceInKm} * 1000) " +
-        "RETURN o.latitude AS latitude, o.longitude AS longitude, {entity: collect(distinct(company.name)), address: o.address,city:city.name,date : collect(o.date),quantity: collect(q.quantity),product : collect(distinct(p.name))}  AS text"
+        "WITH point({longitude: {longitude}, latitude: {latitude}}) as pos "+
+        "MATCH (rating)<-[:HAS_RATING]-(h:Hospital)-[:IS_IN*..4]->(location)" +
+        "WHERE exists(h.latitude) AND distance(pos, point({longitude : h.longitude,latitude : h.latitude})) < ({distanceInKm} * 1000)" +
+        "RETURN h.latitude AS latitude, h.longitude AS longitude, {hospital: h.name, location: substring(reduce(s='', name in collect(location.name) | s + ',' + name),1),mortality:h.mortality,effectiveness:h.effectiveness,safety:h.safety,emergency_services:h.emergency_services,timeliness:h.timeliness,experience:h.experience}  AS text"
 
     /**
      * Clears the map. Remove all currently shown layers
      * */
-   /* function clearMap(m) {
+    function clearMap(m) {
+        
         for(var i in m._layers) {
-            if(m._layers[i]._path != undefined) {
+            console.log(i)
+            if (i != 22 && i != 24 && i != 25) {
                 try {
+
                     m.removeLayer(m._layers[i]);
                 }
                 catch(e) {
                     console.log("problem with " + e + m._layers[i]);
                 }
+        
             }
         }
-    }*/
+    }
 
      /**
       *  Converts Polygon WKT string to an array of arrays of [x,y] points.
@@ -110,16 +114,21 @@
      }
 
 
-    function getAddresses() {
+    function getAddresses(pos,distance) {
+         var addressParams = {
+            "longitude": pos.lng, 
+            "latitude": pos.lat,
+            "distanceInKm": distance || 50
+        }
         
         session
-            .run(addressQuery)
+            .run(addressQuery,addressParams)
             .then(function(result){
                 result.records.forEach(function(record) {
                     addAddress(record.get("latitude"),record.get("longitude"),
                                record.get("text"));
                     //print(record.get("text"))
- 	                //addPopup(record.get("text"), {lat:record.get("latitude"),lng:record.get("longitude")});
+                    //addPopup(record.get("text"), {lat:record.get("latitude"),lng:record.get("longitude")});
                 });
 
             })
@@ -132,18 +141,20 @@
      */
     function buildPopup(d) {
         // {officer : officer.name, entity: entity.name, role: type(role), address: a.address, country: entity.country_codes}
-
+      
         var text =
                 
             '<div class="tab-content">' +
                 '<div role="tabpanel" class="tab-pane active" id="home">' +
                         '<div>' +
                             '<ul>' +
-                            '<li>Company: ' + d["entity"] + '</li>' +
-                            '<li>Address: ' + d["address"] + ', ' + d["city"] +'</li>' +
-                            '<li>Date: ' + d["date"] + '</li>' +
-                            '<li>Quantity: ' + d["quantity"] + '</li>' +
-                            '<li>Product: ' + d["product"] + '</li>' +
+                            '<li>Name: ' + d["hospital"] + '</li>' +
+                            '<li>Emergency: ' + d["emergency_services"] + '</li>' +
+                            '<li>Location: ' +  d["location"]  + ', ' + d["city"] +'</li>' +
+                            '<li>Mortality: ' + d["mortality"] + '</li>' +
+                            '<li>Effectiveness: ' + d["effectiveness"] + '</li>' +
+                            '<li>Safety: ' + d["safety"] + '</li>' +
+                            '<li>Experience: ' + d["experience"] + '</li>' +
                             '</ul>' +
                         '</div>' +
                 '</div>' +
@@ -180,17 +191,18 @@
     }*/
 
      function addAddress(lat,lon,data) {
-       /* L.icon({
-    //iconUrl: 'https://www.mapbox.com/mapbox.js/assets/images/astronaut2.png',
-    //shadowUrl: 'https://www.mapbox.com/mapbox.js/assets/images/astronaut2.png',
+        //console.log(data)
+   /*    var myIcon = L.icon({
+    iconUrl: 'http://www.workbooks.com/sites/default/files/Multi%20Company%20Support.png?1283777178',
+    shadowUrl: 'http://www.workbooks.com/sites/default/files/Multi%20Company%20Support.png?1283777178',
 
-    iconSize:     [38, 95], // size of the icon
-    shadowSize:   [50, 64], // size of the shadow
-    iconAnchor:   [22, 94], // point of the icon which will correspond to marker's location
+    iconSize:     [30, 60], // size of the icon
+    shadowSize:   [25, 32], // size of the shadow
+    iconAnchor:   [0, 0], // point of the icon which will correspond to marker's location
     shadowAnchor: [4, 62],  // the same for the shadow
     popupAnchor:  [-3, -76] // point from which the popup should open relative to the iconAnchor
 })*/
-	    var marker = L.marker([lat,lon]).addTo(map);
+        var marker = L.marker([lat,lon]/*,{icon: myIcon}*/).addTo(map);
         popuptext = buildPopup(data);
 
         var popup = L.popup({keepInView: true, minWidth: 350, maxWidth: 1000});
@@ -202,6 +214,8 @@
         popup.update();
         //var popup = addPopup(text,{lat:lat,lng:lon})
         //print(popup)
+
+       
         
         marker.bindPopup(popup);
         marker.on('click', function(e){
@@ -212,17 +226,24 @@
 
     L.mapbox.accessToken = MB_API_TOKEN;
     var map = L.mapbox.map('map', 'mapbox.streets')
-    map.on('ready', getAddresses())
-           // .setView([37.7841335,-122.3957437], 13); // US 39.8282, -98.5795 // cph 55.6418041,12.5780417
-
+     .setView([37.7841335,-122.3957437], 13); // US 39.8282, -98.5795 // cph 55.6418041,12.5780417
           
-    map.on('click', function(e) {
+    /*map.on('click', function(e) {
+        console.log(e)
        // clearMap(map);
         //L.popup(e.latlng)
         // .addTo(map)
-        map.panTo(e.latlng);
-    });
+        //map.panTo(e.latlng);
+    });*/
 
+    map.doubleClickZoom.disable(); 
+
+    map.on('dblclick', function(e) {
+        clearMap(map);
+        //L.popup(e.latlng)
+        // .addTo(map)
+        getAddresses(e.latlng, 500)
+    });
 
 });
 
