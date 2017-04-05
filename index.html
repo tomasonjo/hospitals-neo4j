@@ -70,6 +70,10 @@
         "WHERE exists(h.latitude) AND distance(pos, point({longitude : h.longitude,latitude : h.latitude})) < ({distanceInKm} * 1000)" +
         "RETURN h.latitude AS latitude, h.longitude AS longitude, {hospital: h.name, location: substring(reduce(s='', name in collect(location.name) | s + ',' + name),1),mortality:h.mortality,effectiveness:h.effectiveness,safety:h.safety,emergency_services:h.emergency_services,timeliness:h.timeliness,experience:h.experience}  AS text"
 
+    var districtQuery =
+        "(state:State)" +
+        "RETURN state.name as state,state.wkt as wkt" 
+
     /**
      * Clears the map. Remove all currently shown layers
      * */
@@ -128,18 +132,38 @@
                     addAddress(record.get("latitude"),record.get("longitude"),
                                record.get("text"));
                     //print(record.get("text"))
-                    //addPopup(record.get("text"), {lat:record.get("latitude"),lng:record.get("longitude")});
+                    //addDistrictPopup(record.get("text"), {lat:record.get("latitude"),lng:record.get("longitude")});
                 });
 
             })
     }
+
+
+
+    function getDistricts(latlng) {
+        
+        var districtParams = {
+            "longitude": latlng.lng,
+            "latitude": latlng.lat,
+        }
+        session
+            .run(districtQuery, districtParams)
+            .then(function(result){
+                result.records.forEach(function(record) {
+                    console.log(record);
+                    drawPolygons(parseWKTPolygons(record.get("wkt")), 'brown');
+                    addDistrictPopup(record.get("state"), latlng);
+                });
+            })
+    }
+
 
     /**
      * Generate the content for the popup
      * @param d
      * @returns {string}
      */
-    function buildPopup(d) {
+    function buildAddressPopup(d) {
         // {officer : officer.name, entity: entity.name, role: type(role), address: a.address, country: entity.country_codes}
       
         var text =
@@ -176,34 +200,43 @@
      * @param data
      * @param latlng
      */
-    /*function addPopup(data, latlng) {
+    
+    function drawPolygons(polygons, color) {
+         var bounds = null;
+         console.log("Drawing " + polygons.length + " polygons");
+         $.each(polygons, function (i, points) {
+             try {
+                 console.log("Drawing polygon " + (i + 1) + "/" + polygons.length + " of " + points.length + " points");
+                 var polyline = L.polygon(points, {color: color}).addTo(map);
+                 if (bounds == null) {
+                     bounds = polyline.getBounds();
+                 } else {
+                     bounds.extend(polyline.getBounds());
+                 }
+             } catch (err) {
+                 console.log("Failed to draw polygon " + (i + 1) + "/" + polygons.length + ": " + err);
+             }
+         });
+         if (bounds) {
+             map.fitBounds(bounds);
+         }
+     }
 
-        popuptext = buildPopup(data);
-
+    function addDistrictPopup(data, latlng) {
+        popuptext = "what what"//buildDistrictPopup(data);
         var popup = L.popup({keepInView: true, minWidth: 350, maxWidth: 1000});
         popup.setLatLng(latlng)
                 .setContent(popuptext)
-                //.openOn(map);
-                //.addTo(map);
-
+                .openOn(map);
         popup.update();
+    }
 
-    }*/
 
-     function addAddress(lat,lon,data) {
-        //console.log(data)
-   /*    var myIcon = L.icon({
-    iconUrl: 'http://www.workbooks.com/sites/default/files/Multi%20Company%20Support.png?1283777178',
-    shadowUrl: 'http://www.workbooks.com/sites/default/files/Multi%20Company%20Support.png?1283777178',
 
-    iconSize:     [30, 60], // size of the icon
-    shadowSize:   [25, 32], // size of the shadow
-    iconAnchor:   [0, 0], // point of the icon which will correspond to marker's location
-    shadowAnchor: [4, 62],  // the same for the shadow
-    popupAnchor:  [-3, -76] // point from which the popup should open relative to the iconAnchor
-})*/
-        var marker = L.marker([lat,lon]/*,{icon: myIcon}*/).addTo(map);
-        popuptext = buildPopup(data);
+    function addAddress(lat,lon,data) {
+   
+        var marker = L.marker([lat,lon]).addTo(map);
+        popuptext = buildAddressPopup(data);
 
         var popup = L.popup({keepInView: true, minWidth: 350, maxWidth: 1000});
         popup.setLatLng({lat:lat,lng:lon})
@@ -222,19 +255,25 @@
                 this.openPopup();
                                 })
         
-     }
+    }
 
     L.mapbox.accessToken = MB_API_TOKEN;
     var map = L.mapbox.map('map', 'mapbox.streets')
      .setView([37.7841335,-122.3957437], 13); // US 39.8282, -98.5795 // cph 55.6418041,12.5780417
+
+
+    map.on('load',function(){
+
+    })
           
-    /*map.on('click', function(e) {
-        console.log(e)
+    map.on('click', function(e) {
        // clearMap(map);
         //L.popup(e.latlng)
         // .addTo(map)
         //map.panTo(e.latlng);
-    });*/
+        getDistricts(e.latlng);
+    
+    });
 
     map.doubleClickZoom.disable(); 
 
