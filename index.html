@@ -102,10 +102,15 @@
      function parseWKTPolygons(wkt) {
          var pointArr = [];
          var points = wkt.slice(10,-3).split(",")
+
          for(var i = 0; i < points.length;i++){
         var vmes =points[i].split(" ")
+        
+        if (!(isNaN(vmes[0]) || isNaN(vmes[1]))){  
        pointArr.push({lat:parseFloat(vmes[1]),lng:parseFloat(vmes[0])})
+           }
         }
+
         return pointArr;
     
     }
@@ -155,6 +160,9 @@
      
       
           var polyline = L.polygon(polygons,{color: color}).addTo(map);
+          polyline.on('click', function(e){
+               console.log("bullshit")
+                                })
  
 
           
