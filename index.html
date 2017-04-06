@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset=utf-8 />
-    <title>World Map of customers</title>
+    <title>US Hospitals</title>
     <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
     <script src='https://api.mapbox.com/mapbox.js/v2.2.3/mapbox.js'></script>
     <link href='https://api.mapbox.com/mapbox.js/v2.2.3/mapbox.css' rel='stylesheet' />
@@ -43,7 +43,7 @@
 <div id="desc">
     <div class="row top-row">
         <div class="col-xs-6">
-            <h3 class="heading">World map of customers</h3>
+            <h3 class="heading">US Hospitals</h3>
         </div>
         <div class="col-xs-6">
             <p class="lead"></p>
@@ -58,7 +58,7 @@
     /**
      * Constants
      */
-    var boltURI = 'bolt://192.168.11.100';
+    var boltURI = 'bolt://localhost';
     var MB_API_TOKEN = "pk.eyJ1IjoibHlvbndqIiwiYSI6IndwUXlLUjQifQ.DIiytYUASOcXjKdpXW8S-Q";
 
     var driver = neo4j.v1.driver(boltURI, neo4j.v1.auth.basic("neo4j", "burek123"));
@@ -71,8 +71,8 @@
         "RETURN h.latitude AS latitude, h.longitude AS longitude, {hospital: h.name, location: substring(reduce(s='', name in collect(location.name) | s + ',' + name),1),mortality:h.mortality,effectiveness:h.effectiveness,safety:h.safety,emergency_services:h.emergency_services,timeliness:h.timeliness,experience:h.experience}  AS text"
 
     var districtQuery =
-        "(state:State)" +
-        "RETURN state.name as state,state.wkt as wkt" 
+        "MATCH (state:State) WHERE exists (state.wkt)" +
+        "RETURN state.name as state,state.wkt as wkt SKIP 5"
 
     /**
      * Clears the map. Remove all currently shown layers
@@ -101,22 +101,14 @@
       */
      function parseWKTPolygons(wkt) {
          var pointArr = [];
-         var points = wkt.slice(16, -4).split(",");
-
-         // The geometries are MULTIPOLYGONS therefore there can be multiple polygons in each geometry
-         var polygons = wkt.slice(16, -4).split(")), ((").map(function (polygon) {
-             return polygon.split(", ").map(function (pair) {
-                 return pair.split(" ").reverse().map(function (num) {
-                     return parseFloat(num);
-                 })
-             }).filter(function (point) {
-                 return !(isNaN(point[0]) || isNaN(point[1]));
-             });
-         });
-
-         return polygons;
-     }
-
+         var points = wkt.slice(10,-3).split(",")
+         for(var i = 0; i < points.length;i++){
+        var vmes =points[i].split(" ")
+       pointArr.push({lat:parseFloat(vmes[1]),lng:parseFloat(vmes[0])})
+        }
+        return pointArr;
+    
+    }
 
     function getAddresses(pos,distance) {
          var addressParams = {
@@ -140,22 +132,34 @@
 
 
 
-    function getDistricts(latlng) {
+    function getDistricts() {
         
-        var districtParams = {
-            "longitude": latlng.lng,
-            "latitude": latlng.lat,
-        }
+       
         session
-            .run(districtQuery, districtParams)
+            .run(districtQuery)
             .then(function(result){
                 result.records.forEach(function(record) {
                     console.log(record);
-                    drawPolygons(parseWKTPolygons(record.get("wkt")), 'brown');
-                    addDistrictPopup(record.get("state"), latlng);
+                     drawPolygons(parseWKTPolygons(record.get("wkt")), 'brown');
+
                 });
             })
     }
+
+
+    function drawPolygons(polygons, color) {
+         var bounds = null;
+       console.log("Drawing " + polygons.length + " polygons");
+    
+
+     
+      
+          var polyline = L.polygon(polygons,{color: color}).addTo(map);
+ 
+
+          
+//   })
+}
 
 
     /**
@@ -193,39 +197,14 @@
 
         return text;
     }
-
-    /**
-     *  Add District polygon and legislator popup to map
-     *
-     * @param data
-     * @param latlng
-     */
     
-    function drawPolygons(polygons, color) {
-         var bounds = null;
-         console.log("Drawing " + polygons.length + " polygons");
-         $.each(polygons, function (i, points) {
-             try {
-                 console.log("Drawing polygon " + (i + 1) + "/" + polygons.length + " of " + points.length + " points");
-                 var polyline = L.polygon(points, {color: color}).addTo(map);
-                 if (bounds == null) {
-                     bounds = polyline.getBounds();
-                 } else {
-                     bounds.extend(polyline.getBounds());
-                 }
-             } catch (err) {
-                 console.log("Failed to draw polygon " + (i + 1) + "/" + polygons.length + ": " + err);
-             }
-         });
-         if (bounds) {
-             map.fitBounds(bounds);
-         }
-     }
 
-    function addDistrictPopup(data, latlng) {
+  
+
+    function addDistrictPopup(data) {
         popuptext = "what what"//buildDistrictPopup(data);
         var popup = L.popup({keepInView: true, minWidth: 350, maxWidth: 1000});
-        popup.setLatLng(latlng)
+        popup.setLatLng([37.7841335,-122.3957437])
                 .setContent(popuptext)
                 .openOn(map);
         popup.update();
@@ -259,7 +238,7 @@
 
     L.mapbox.accessToken = MB_API_TOKEN;
     var map = L.mapbox.map('map', 'mapbox.streets')
-     .setView([37.7841335,-122.3957437], 13); // US 39.8282, -98.5795 // cph 55.6418041,12.5780417
+ //  .setView([37.7841335,-122.3957437], 13); // US 39.8282, -98.5795 // cph 55.6418041,12.5780417
 
 
     map.on('load',function(){
@@ -271,19 +250,19 @@
         //L.popup(e.latlng)
         // .addTo(map)
         //map.panTo(e.latlng);
-        getDistricts(e.latlng);
+        getDistricts();
     
     });
 
     map.doubleClickZoom.disable(); 
-
+/*
     map.on('dblclick', function(e) {
         clearMap(map);
         //L.popup(e.latlng)
         // .addTo(map)
         getAddresses(e.latlng, 500)
     });
-
+*/
 });
 
 </script>
