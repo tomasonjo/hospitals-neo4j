@@ -71,8 +71,9 @@
         "RETURN h.latitude AS latitude, h.longitude AS longitude, {hospital: h.name, location: substring(reduce(s='', name in collect(location.name) | s + ',' + name),1),mortality:h.mortality,effectiveness:h.effectiveness,safety:h.safety,emergency_services:h.emergency_services,timeliness:h.timeliness,experience:h.experience}  AS text"
 
     var districtQuery =
-        "MATCH (state:State) WHERE exists (state.wkt) AND not state.name = 'AK'" +
-        "RETURN state.name as state,state.wkt as wkt"
+        "MATCH (state:State)<-[:IS_IN*5..5]-(hospital) WHERE exists (state.wkt) AND not state.name = 'AK'" +
+        "OPTIONAL MATCH (o)<-[:HAS_OWNERSHIP]-(hospital)-[:HAS_RATING]->(r)" +
+        "RETURN state.wkt as wkt,{state:state.state,count : count(hospital),rating:avg(toINT(r.name))} as text"
 
     /**
      * Clears the map. Remove all currently shown layers
@@ -145,18 +146,18 @@
             .then(function(result){
                 result.records.forEach(function(record) {
                     console.log(record);
-                     drawPolygons(parseWKTPolygons(record.get("wkt")), record.get("state"));
+                     drawPolygons(parseWKTPolygons(record.get("wkt")), record.get("text"));
 
                 });
             })
     }
 
 
-    function drawPolygons(polygons, state) {
+    function drawPolygons(polygons, text) {
          var bounds = null;
             console.log("Drawing " + polygons.length + " polygons");
 
-         popuptext = buildStatePopup(state)
+         popuptext = buildStatePopup(text)
          var popup = L.popup({keepInView: true, minWidth: 350, maxWidth: 1000});
         popup.setContent(popuptext)
         
@@ -178,7 +179,9 @@
                 '<div role="tabpanel" class="tab-pane active" id="home">' +
                         '<div>' +
                             '<ul>' +
-                            '<li>Name: ' + d + '</li>' +
+                            '<li>Name: ' + d["state"] + '</li>' +
+                            '<li>Hospitals: ' + d["count"] + '</li>' +
+                            '<li>Average Rating: ' + d["rating"] + '</li>' +
                             '</ul>' +
                         '</div>' +
                 '</div>' +
@@ -255,19 +258,23 @@
 
     L.mapbox.accessToken = MB_API_TOKEN;
     var map = L.mapbox.map('map', 'mapbox.streets')
- //  .setView([37.7841335,-122.3957437], 13); // US 39.8282, -98.5795 // cph 55.6418041,12.5780417
-
 
     map.on('load',function(){
+        getDistricts();
 
     })
+
+   map.setView([39.8282, -98.5795], 4); // US 39.8282, -98.5795 // cph 55.6418041,12.5780417
+
+
+    
           
     map.on('click', function(e) {
        // clearMap(map);
         //L.popup(e.latlng)
         // .addTo(map)
         //map.panTo(e.latlng);
-        getDistricts();
+
     
     });
 
