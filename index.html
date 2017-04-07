@@ -48,7 +48,7 @@
         <div class="col-xs-6">
             <p class="lead"></p>
         </div>
-
+        <button onclick="$.getStates();">Load States!</button>
     </div>
 </div>
 <div id='map'></div>
@@ -75,13 +75,13 @@
         "OPTIONAL MATCH (o)<-[:HAS_OWNERSHIP]-(hospital)-[:HAS_RATING]->(r)" +
         "RETURN state.wkt as wkt,{state:state.state,count : count(hospital),rating:avg(toINT(r.name))} as text"
 
+
     /**
      * Clears the map. Remove all currently shown layers
      * */
     function clearMap(m) {
         
         for(var i in m._layers) {
-            console.log(i)
             if (i != 22 && i != 24 && i != 25) {
                 try {
 
@@ -97,24 +97,25 @@
 
      /**
       *  Converts Polygon WKT string to an array of arrays of [x,y] points.
-      *  Each outer array represents one polygon of the multi-polygon set.
-      *  Each inner array is a collection of points on the map for a single polygon.
       */
      function parseWKTPolygons(wkt) {
          var pointArr = [];
          var points = wkt.slice(10,-3).split(",")
 
          for(var i = 0; i < points.length;i++){
-        var vmes =points[i].split(" ")
+        var xy =points[i].split(" ")
         
-        if (!(isNaN(vmes[0]) || isNaN(vmes[1]))){  
-       pointArr.push({lat:parseFloat(vmes[1]),lng:parseFloat(vmes[0])})
+        if (!(isNaN(xy[0]) || isNaN(xy[1]))){  
+       pointArr.push({lat:parseFloat(xy[1]),lng:parseFloat(xy[0])})
            }
         }
 
         return pointArr;
     
     }
+    /**
+      *  Gets data from Neo4j and runs visualizations script
+      */
 
     function getAddresses(pos,distance) {
          var addressParams = {
@@ -137,25 +138,22 @@
 
 
 
-    function getDistricts() {
-        
-       
+    function getStates() {    
         session
             .run(districtQuery)
             .then(function(result){
                 result.records.forEach(function(record) {
-                    console.log(record);
                      drawPolygons(parseWKTPolygons(record.get("wkt")), record.get("text"));
 
                 });
             })
     }
-
+     /**
+      *   Draw visualization for states (polygons) and addresses (markers)
+      */
 
     function drawPolygons(polygons, text) {
          var bounds = null;
-            console.log("Drawing " + polygons.length + " polygons");
-
          popuptext = buildStatePopup(text)
          var popup = L.popup({keepInView: true, minWidth: 350, maxWidth: 1000});
         popup.setContent(popuptext)
@@ -169,6 +167,26 @@
         
     
     }
+
+    function addAddress(lat,lon,data) {
+   
+        var marker = L.marker([lat,lon]).addTo(map);
+        popuptext = buildAddressPopup(data);
+
+        var popup = L.popup({keepInView: true, minWidth: 350, maxWidth: 1000});
+        popup.setLatLng({lat:lat,lng:lon})
+                .setContent(popuptext)
+        marker.bindPopup(popup);
+        marker.on('click', function(e){
+                this.openPopup();
+                                })
+        
+    }
+    /**
+     * Generate the content for the popup
+     * @param d
+     * @returns {string}
+     */
 
     function buildStatePopup(d){
 
@@ -189,11 +207,8 @@
 
         return text;
     }
-    /**
-     * Generate the content for the popup
-     * @param d
-     * @returns {string}
-     */
+    
+
     function buildAddressPopup(d) {
      
         var text =
@@ -222,32 +237,17 @@
     
 
 
-    function addAddress(lat,lon,data) {
-   
-        var marker = L.marker([lat,lon]).addTo(map);
-        popuptext = buildAddressPopup(data);
-
-        var popup = L.popup({keepInView: true, minWidth: 350, maxWidth: 1000});
-        popup.setLatLng({lat:lat,lng:lon})
-                .setContent(popuptext)
-        marker.bindPopup(popup);
-        marker.on('click', function(e){
-                this.openPopup();
-                                })
-        
-    }
+    
 
     L.mapbox.accessToken = MB_API_TOKEN;
     var map = L.mapbox.map('map', 'mapbox.streets')
 
     map.on('load',function(){
-        getDistricts();
+        getStates();
 
     })
 
    map.setView([39.8282, -98.5795], 4); 
-
-
 
    map.doubleClickZoom.disable(); 
 
