@@ -61,7 +61,7 @@
     var boltURI = 'bolt://localhost';
     var MB_API_TOKEN = "pk.eyJ1IjoibHlvbndqIiwiYSI6IndwUXlLUjQifQ.DIiytYUASOcXjKdpXW8S-Q";
 
-    var driver = neo4j.v1.driver(boltURI, neo4j.v1.auth.basic("neo4j", "burek123"));
+    var driver = neo4j.v1.driver(boltURI, neo4j.v1.auth.basic("neo4j", "password"));
     var session = driver.session();
 
     var addressQuery =
