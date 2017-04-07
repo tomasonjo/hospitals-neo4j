@@ -61,7 +61,7 @@
     var boltURI = 'bolt://localhost';
     var MB_API_TOKEN = "pk.eyJ1IjoibHlvbndqIiwiYSI6IndwUXlLUjQifQ.DIiytYUASOcXjKdpXW8S-Q";
 
-    var driver = neo4j.v1.driver(boltURI, neo4j.v1.auth.basic("neo4j", "password"));
+    var driver = neo4j.v1.driver(boltURI, neo4j.v1.auth.basic("neo4j", "pass"));
     var session = driver.session();
 
     var addressQuery =
@@ -71,8 +71,8 @@
         "RETURN h.latitude AS latitude, h.longitude AS longitude, {hospital: h.name, location: substring(reduce(s='', name in collect(location.name) | s + ',' + name),1),mortality:h.mortality,effectiveness:h.effectiveness,safety:h.safety,emergency_services:h.emergency_services,timeliness:h.timeliness,experience:h.experience}  AS text"
 
     var districtQuery =
-        "MATCH (state:State) WHERE exists (state.wkt)" +
-        "RETURN state.name as state,state.wkt as wkt SKIP 5"
+        "MATCH (state:State)<-[:IS_IN*4..4]-(hospital) WHERE exists (state.wkt)" +
+        "RETURN state.name as state,state.wkt as wkt"
 
     /**
      * Clears the map. Remove all currently shown layers
@@ -157,11 +157,12 @@
        console.log("Drawing " + polygons.length + " polygons");
     
 
-     
+       
       
           var polyline = L.polygon(polygons,{color: color}).addTo(map);
           polyline.on('click', function(e){
                console.log("bullshit")
+              //  console.log(data)
                                 })
  
 
@@ -210,6 +211,7 @@
   
 
     function addDistrictPopup(data) {
+        console.log(data)
         popuptext = "what what"//buildDistrictPopup(data);
         var popup = L.popup({keepInView: true, minWidth: 350, maxWidth: 1000});
         popup.setLatLng([37.7841335,-122.3957437])
