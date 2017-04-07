@@ -129,8 +129,7 @@
                 result.records.forEach(function(record) {
                     addAddress(record.get("latitude"),record.get("longitude"),
                                record.get("text"));
-                    //print(record.get("text"))
-                    //addDistrictPopup(record.get("text"), {lat:record.get("latitude"),lng:record.get("longitude")});
+                   
                 });
 
             })
@@ -185,10 +184,6 @@
                             '</ul>' +
                         '</div>' +
                 '</div>' +
-            '<div role="tabpanel" class="tab-pane" id="code">' +
-                '<pre class="pre-scrollable">' + districtQuery + '</pre>' +
-            '</div>' +
-
         '</div>'
             ;
 
@@ -200,8 +195,7 @@
      * @returns {string}
      */
     function buildAddressPopup(d) {
-        // {officer : officer.name, entity: entity.name, role: type(role), address: a.address, country: entity.country_codes}
-      
+     
         var text =
                 
             '<div class="tab-content">' +
@@ -210,7 +204,7 @@
                             '<ul>' +
                             '<li>Name: ' + d["hospital"] + '</li>' +
                             '<li>Emergency: ' + d["emergency_services"] + '</li>' +
-                            '<li>Location: ' +  d["location"]  + ', ' + d["city"] +'</li>' +
+                            '<li>Location: ' +  d["location"] +'</li>' +
                             '<li>Mortality: ' + d["mortality"] + '</li>' +
                             '<li>Effectiveness: ' + d["effectiveness"] + '</li>' +
                             '<li>Safety: ' + d["safety"] + '</li>' +
@@ -218,10 +212,6 @@
                             '</ul>' +
                         '</div>' +
                 '</div>' +
-            '<div role="tabpanel" class="tab-pane" id="code">' +
-                '<pre class="pre-scrollable">' + addressQuery + '</pre>' +
-            '</div>' +
-
         '</div>'
             ;
 
@@ -240,15 +230,6 @@
         var popup = L.popup({keepInView: true, minWidth: 350, maxWidth: 1000});
         popup.setLatLng({lat:lat,lng:lon})
                 .setContent(popuptext)
-                //.openOn(map);
-                //.addTo(map);
-
-        popup.update();
-        //var popup = addPopup(text,{lat:lat,lng:lon})
-        //print(popup)
-
-       
-        
         marker.bindPopup(popup);
         marker.on('click', function(e){
                 this.openPopup();
@@ -264,29 +245,17 @@
 
     })
 
-   map.setView([39.8282, -98.5795], 4); // US 39.8282, -98.5795 // cph 55.6418041,12.5780417
+   map.setView([39.8282, -98.5795], 4); 
 
 
-    
-          
-    map.on('click', function(e) {
-       // clearMap(map);
-        //L.popup(e.latlng)
-        // .addTo(map)
-        //map.panTo(e.latlng);
 
-    
-    });
+   map.doubleClickZoom.disable(); 
 
-    map.doubleClickZoom.disable(); 
-/*
-    map.on('dblclick', function(e) {
+   map.on('dblclick', function(e) {
         clearMap(map);
-        //L.popup(e.latlng)
-        // .addTo(map)
-        getAddresses(e.latlng, 500)
+        getAddresses(e.latlng, 100)
     });
-*/
+
 });
 
 </script>
