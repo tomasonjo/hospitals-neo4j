@@ -26,6 +26,14 @@ Start server:
 Get tutorial in Neo4j Browser
 
 `:play http://localhost:8001/hospital.html`
+## MapBox:
+
+`python -m SimpleHTTPServer 3000`
+
+open 
+
+`http://localhost:3000`
+
 
 ## Blog posts:
 
